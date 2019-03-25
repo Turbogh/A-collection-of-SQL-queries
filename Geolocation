@@ -1,0 +1,99 @@
+#>5000alias not in the same county but in same state
+SELECT DISTINCT zip.`County`, zip.`CityAliasName` a, zip.`State`
+FROM zip
+WHERE zip.population >=5000;
+
+#>5000cities
+CREATE TABLE D5kC
+SELECT DISTINCT zip.`County`, zip.`City`, zip.`State`
+FROM zip
+WHERE zip.population >=5000;
+
+#number of cities not in the same county but in same state
+SELECT COUNT(DISTINCT(zip.`County`), zip.`City`, zip.`State`)
+FROM zip;
+
+#number of unique duplicate cities in same state nationwide
+SELECT DISTINCT(zip.`County`), zip.`City`, zip.`State`, COUNT(zip.`City`)
+FROM zip
+GROUP BY zip.`City`, zip.`State`, zip.`County`
+HAVING COUNT(zip.`City`) >= 2
+ORDER BY zip.state, zip.city;
+
+
+SELECT zip.State, zip.County, zip.City, COUNT(zip.City) as count, COUNT(DISTINCT(zip.County)) as county_count
+FROM zip
+GROUP BY zip.State, zip.County, zip.City
+HAVING COUNT(zip.City) >= 2 AND COUNT(DISTINCT(zip.County)) >= 2
+ORDER BY zip.City, zip.County, zip.State;
+
+
+SELECT zip.State, zip.County, zip.City
+FROM zip
+WHERE zip.City LIKE 'ALEUTIANS WEST';
+
+SELECT ZIP.cityaliasname, zip.county, zip.state
+From zip
+Where zip.state = "PA"
+Order by cityaliasnam DESC , county DESC;
+	
+#% in ANSI (alias) - 16499
+SELECT a.`FEATURE_NAME`, a.`COUNTY_NAME`, a.`STATE_ALPHA`
+FROM ansi AS a
+INNER JOIN (SELECT DISTINCT(z.CityAliasName), z.`State`
+			FROM zip as z
+			WHERE `POPULATION`>=5000) as t
+ON t.`CityAliasName` = a.feature_name
+AND t.state = a.state_alpha;
+
+#% in ANSI (city) - 8132 rows
+Explain extended SELECT a.`FEATURE_NAME`, a.`COUNTY_NAME`, a.`STATE_ALPHA`
+FROM ansi AS a
+LEFT JOIN (SELECT DISTINCT(z.`City`), z.`County`, z.`State`
+			FROM zip as z
+			Where `POPULATION`>=5000) as t
+ON t.`City` = a.feature_name
+AND t.state = a.state_alpha
+AND t.county = a.`COUNTY_NAME`
+ORDER BY a.`STATE_ALPHA`, a.`FEATURE_NAME`;
+
+
+-- match zip results to ansi
+SELECT 	min(z.zipcode) ID, 
+		z.city as City, 
+		z.state as State, 
+		SUM(z.population) as Population, 
+		z.Timezone
+FROM zip z
+INNER JOIN ansi a 
+	ON z.city = a.feature_name
+	AND z.State = a.state_alpha
+GROUP BY z.city, z.state, z.timezone
+HAVING SUM(z.population) >= 5000;
+
+
+--match ID	
+SELECT DISTINCT latitude, longitude, zip.city
+FROM zip, z2
+WHERE zip.zipcode = z2.ID
+AND zip.city = z2.city
+Order by city
+
+--
+ALTER TABLE z2
+ADD (latitude DECIMAL(10,7),
+	longitude DECIMAL(10,7));
+		
+INSERT INTO z2 (latitude, longitude)           
+SELECT  zip.latitude, zip.longitude
+FROM zip, z2
+WHERE zip.zipcode = z2.ID
+	AND zip.city = z2.city;
+
+INSERT INTO z2 (latitude, longitude)
+SELECT zip.latitude, zip.longitude
+FROM zip
+INNER JOIN z2
+ON zip.zipcode = z2.ID;
+
+DELETE FROM z2 WHERE CITY IS NULL;
